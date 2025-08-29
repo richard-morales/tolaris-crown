@@ -1,26 +1,42 @@
+/* Tailwind v4 entry point must be first */
 @import "tailwindcss";
 
+/* 
+  Design Tokens (Tailwind v4)
+  ---------------------------
+  - Using @theme with --color-* creates real utilities: bg-champagne, text-burgundy, etc.
+  - This keeps colors consistent and centralizes brand decisions.
+*/
+@theme {
+  --color-ivory: #faf3e0; /* base background */
+  --color-champagne: #d5b895; /* primary brand surface */
+  --color-burgundy: #4a1c1c; /* brand text/accent */
+  --color-taupe: #8d6e63; /* secondary text/accent */
+}
+
+/* 
+  Optional: raw CSS variables
+  - Enables Tailwind v4 shorthand like bg-(--champagne) if needed.
+  - Not required for token utilities; kept for flexibility.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ivory: #faf3e0;
+  --champagne: #d5b895;
+  --burgundy: #4a1c1c;
+  --taupe: #8d6e63;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* 
+  App-wide primitives
+  - Reasonable defaults that demonstrate polish (antialiasing, selection colors).
+*/
+html {
+  color-scheme: light;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply antialiased;
+}
+::selection {
+  background: var(--champagne);
+  color: var(--burgundy);
 }
