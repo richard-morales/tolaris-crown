@@ -1,0 +1,43 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  price       Int
+  capacity    Int
+  coverImage  String
+  blurb       String?
+  description String?
+
+  features Feature[]
+  images   RoomImage[]
+
+  @@index([slug])
+}
+
+model Feature {
+  id     String @id @default(cuid())
+  label  String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId String
+}
+
+model RoomImage {
+  id     String @id @default(cuid())
+  url    String
+  sort   Int    @default(0)
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId String
+
+  @@index([roomId, sort])
+}

@@ -1,20 +1,30 @@
 // src/app/rooms/[slug]/page.tsx
-// Room details page. Shows cover image, overview, features, booking sidebar, and gallery.
+// Room details from Prisma: cover, overview, features, gallery + lightbox.
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ROOMS } from "@/lib/rooms";
 import { Button } from "@/components/ui/button";
+import Gallery from "@/components/rooms/gallery";
+import { prisma } from "@/lib/db";
+
+export const runtime = "nodejs";
 
 export async function generateStaticParams() {
-  return ROOMS.map((r) => ({ slug: r.slug }));
+  const rooms = await prisma.room.findMany({ select: { slug: true } });
+  return rooms.map((r) => ({ slug: r.slug }));
 }
 
-// Static paths only for the slugs above.
 export const dynamicParams = false;
 
-export default function RoomDetails({ params }: { params: { slug: string } }) {
-  const room = ROOMS.find((r) => r.slug === params.slug);
+export default async function RoomDetails({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const room = await prisma.room.findUnique({
+    where: { slug: params.slug },
+    include: { features: true, images: { orderBy: { sort: "asc" } } },
+  });
   if (!room) return notFound();
 
   return (
@@ -29,8 +39,9 @@ export default function RoomDetails({ params }: { params: { slug: string } }) {
       <header className="mt-3 flex flex-col gap-2">
         <h1 className="text-3xl font-serif text-burgundy">{room.name}</h1>
         <p className="text-taupe">
-          From <span className="text-burgundy font-semibold">€{room.price}</span> / night · Sleeps{" "}
-          {room.capacity}
+          From{" "}
+          <span className="text-burgundy font-semibold">€{room.price}</span> /
+          night · Sleeps {room.capacity}
         </p>
       </header>
 
@@ -38,7 +49,7 @@ export default function RoomDetails({ params }: { params: { slug: string } }) {
       <div className="mt-6 relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-[color-mix(in_oklab,_var(--color-taupe)_25%,_transparent)]">
         <div className="absolute inset-0 bg-[linear-gradient(135deg,_rgba(213,184,149,0.25),_rgba(74,28,28,0.25))]" />
         <Image
-          src={room.image}
+          src={room.coverImage}
           alt={`${room.name} — cover`}
           fill
           sizes="(min-width:1024px) 960px, 100vw"
@@ -48,7 +59,6 @@ export default function RoomDetails({ params }: { params: { slug: string } }) {
       </div>
 
       <section className="mt-6 grid gap-6 md:grid-cols-[2fr_1fr]">
-        {/* Overview & features */}
         <div>
           <h2 className="text-xl font-semibold text-burgundy">Overview</h2>
           <p className="mt-2 text-taupe/90">
@@ -56,13 +66,15 @@ export default function RoomDetails({ params }: { params: { slug: string } }) {
               "A refined suite designed for comfort and calm, finished in warm tones."}
           </p>
 
-          {room.features?.length ? (
+          {room.features.length ? (
             <>
-              <h3 className="mt-6 text-lg font-semibold text-burgundy">Features</h3>
+              <h3 className="mt-6 text-lg font-semibold text-burgundy">
+                Features
+              </h3>
               <ul className="mt-2 grid grid-cols-1 gap-2 text-taupe/90 sm:grid-cols-2">
                 {room.features.map((f) => (
-                  <li key={f} className="leading-6">
-                    • {f}
+                  <li key={f.id} className="leading-6">
+                    • {f.label}
                   </li>
                 ))}
               </ul>
@@ -70,13 +82,17 @@ export default function RoomDetails({ params }: { params: { slug: string } }) {
           ) : null}
         </div>
 
-        {/* Booking sidebar (placeholder for later DB-backed flow) */}
+        {/* Booking sidebar placeholder */}
         <aside className="rounded-2xl border border-[color-mix(in_oklab,_var(--color-taupe)_25%,_transparent)] bg-white p-4 shadow-sm">
           <div className="flex items-baseline justify-between">
             <span className="text-taupe">From</span>
-            <span className="text-burgundy text-2xl font-semibold">€{room.price}</span>
+            <span className="text-burgundy text-2xl font-semibold">
+              €{room.price}
+            </span>
           </div>
-          <p className="mt-1 text-sm text-taupe">Per night · Sleeps {room.capacity}</p>
+          <p className="mt-1 text-sm text-taupe">
+            Per night · Sleeps {room.capacity}
+          </p>
           <form className="mt-4 space-y-3">
             <input
               type="date"
@@ -100,25 +116,10 @@ export default function RoomDetails({ params }: { params: { slug: string } }) {
       </section>
 
       {/* Gallery */}
-      {room.gallery?.length ? (
+      {room.images.length ? (
         <>
           <h2 className="mt-10 text-xl font-semibold text-burgundy">Gallery</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {room.gallery.map((src) => (
-              <div
-                key={src}
-                className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[color-mix(in_oklab,_var(--color-taupe)_25%,_transparent)]"
-              >
-                <Image
-                  src={src}
-                  alt={`${room.name} photo`}
-                  fill
-                  sizes="(min-width:1024px) 320px, 50vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
+          <Gallery images={room.images.map((i) => i.url)} name={room.name} />
         </>
       ) : null}
     </main>
