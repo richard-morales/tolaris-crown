@@ -4,9 +4,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
 import Image from "next/image";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -18,6 +19,8 @@ export default function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const loading = status === "loading";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -54,7 +57,7 @@ export default function Header() {
             ].join(" ")}
           >
             <Image
-              src="/images/logo-crown.png" 
+              src="/images/logo-crown.png"
               alt="Tolaris Crown Logo"
               fill
               sizes="56px"
@@ -85,7 +88,7 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav + auth */}
         <nav className="hidden items-center gap-6 md:flex">
           {NAV.map((item) => {
             const active = pathname === item.href;
@@ -102,11 +105,45 @@ export default function Header() {
               </Link>
             );
           })}
+
+          {/* Primary CTA (always visible) */}
           <Link href="/rooms">
             <Button variant="brand" className="rounded-xl">
               Book
             </Button>
           </Link>
+
+          {/* Auth area */}
+          {loading ? (
+            <span className="text-sm text-taupe">…</span>
+          ) : session ? (
+            <div className="flex items-center gap-3">
+              {/* Use <img> to avoid remote image domain config */}
+              {session.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt={session.user?.name ?? "Profile"}
+                  width={28}
+                  height={28}
+                  className="rounded-full border border-black/10"
+                />
+              ) : null}
+              <Button
+                onClick={() => signOut()}
+                className="rounded-xl bg-neutral-900 text-white hover:bg-neutral-800"
+              >
+                Sign out
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => signIn("google")}
+              variant="brand"
+              className="rounded-xl"
+            >
+              Sign in
+            </Button>
+          )}
         </nav>
 
         {/* Mobile hamburger */}
@@ -140,11 +177,51 @@ export default function Header() {
                 </Link>
               );
             })}
+
+            {/* Book CTA */}
             <Link href="/rooms" className="px-3 py-2">
               <Button variant="brand" className="w-full rounded-xl">
                 Book
               </Button>
             </Link>
+
+            {/* Auth area (mobile) */}
+            <div className="px-3 pt-2">
+              {loading ? (
+                <span className="text-sm text-taupe">…</span>
+              ) : session ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-black/10 p-2">
+                  <div className="flex items-center gap-2">
+                    {session.user?.image ? (
+                      <img
+                        src={session.user.image}
+                        alt={session.user?.name ?? "Profile"}
+                        width={28}
+                        height={28}
+                        className="rounded-full border border-black/10"
+                      />
+                    ) : null}
+                    <span className="text-sm text-burgundy">
+                      {session.user?.name ?? "Signed in"}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => signOut()}
+                    className="rounded-lg bg-neutral-900 text-white hover:bg-neutral-800 h-8 px-3 text-xs"
+                  >
+                    Sign out
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => signIn("google")}
+                  variant="brand"
+                  className="w-full rounded-xl"
+                >
+                  Sign in with Google
+                </Button>
+              )}
+            </div>
           </nav>
         </div>
       )}

@@ -8,20 +8,31 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
+import SessionProviderRoot from "@/components/providers/session-provider";
 import Header from "@/components/layout/header";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} font-sans bg-ivory`}>
-        <Header /> {/* Mount the sticky header */}
-        {children}
+      <body
+        className={`${inter.variable} ${playfair.variable} font-sans bg-ivory`}
+      >
+        <SessionProviderRoot>
+          <Header />
+          {children}
+        </SessionProviderRoot>
       </body>
     </html>
   );
 }
-
-// (Optional) export const metadata = { title: "Tolaris Crown", description: "..." };
