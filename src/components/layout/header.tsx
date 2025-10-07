@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -136,13 +136,11 @@ export default function Header() {
               </Button>
             </div>
           ) : (
-            <Button
-              onClick={() => signIn("google")}
-              variant="brand"
-              className="rounded-xl"
-            >
-              Sign in
-            </Button>
+            <Link href="/auth/signin">
+              <Button variant="brand" className="rounded-xl">
+                Sign in
+              </Button>
+            </Link>
           )}
         </nav>
 
@@ -213,13 +211,11 @@ export default function Header() {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  onClick={() => signIn("google")}
-                  variant="brand"
-                  className="w-full rounded-xl"
-                >
-                  Sign in with Google
-                </Button>
+                <Link href="/auth/signin" className="block">
+                  <Button variant="brand" className="w-full rounded-xl">
+                    Sign in
+                  </Button>
+                </Link>
               )}
             </div>
           </nav>
