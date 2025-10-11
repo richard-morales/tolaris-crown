@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Gallery from "@/components/rooms/gallery";
 import { prisma } from "@/lib/db";
+import BookForm from "@/components/rooms/book-form";
 
 export const runtime = "nodejs";
 
@@ -82,7 +83,7 @@ export default async function RoomDetails({
           ) : null}
         </div>
 
-        {/* Booking sidebar placeholder */}
+        {/* Booking sidebar */}
         <aside className="rounded-2xl border border-[color-mix(in_oklab,_var(--color-taupe)_25%,_transparent)] bg-white p-4 shadow-sm">
           <div className="flex items-baseline justify-between">
             <span className="text-taupe">From</span>
@@ -93,25 +94,8 @@ export default async function RoomDetails({
           <p className="mt-1 text-sm text-taupe">
             Per night · Sleeps {room.capacity}
           </p>
-          <form className="mt-4 space-y-3">
-            <input
-              type="date"
-              className="w-full h-11 rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
-            />
-            <input
-              type="date"
-              className="w-full h-11 rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
-            />
-            <input
-              type="number"
-              min={1}
-              defaultValue={2}
-              className="w-full h-11 rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
-            />
-            <Button type="button" variant="brand" className="w-full rounded-xl">
-              Check Availability
-            </Button>
-          </form>
+
+          <BookForm roomId={room.id} capacity={room.capacity} />
         </aside>
       </section>
 

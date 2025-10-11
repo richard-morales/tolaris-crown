@@ -31,6 +31,8 @@ export default function Header() {
 
   useEffect(() => setOpen(false), [pathname]); // close mobile menu on route change
 
+  const myBookingsActive = pathname.startsWith("/account/bookings");
+
   return (
     <header
       className={[
@@ -47,9 +49,8 @@ export default function Header() {
           scrolled ? "h-16" : "h-20",
         ].join(" ")}
       >
-        {/* Brand (crown PNG + text; logo & text size shrink) */}
+        {/* Brand (logo + text) */}
         <Link href="/" className="group flex items-center gap-3 md:gap-4">
-          {/* logo wrapper scales via size utility; Image fills it */}
           <span
             className={[
               "relative overflow-visible transition-[width,height,transform] duration-200",
@@ -75,8 +76,6 @@ export default function Header() {
             >
               Tolaris <span className="text-champagne">Crown</span>
             </span>
-
-            {/* tagline hides when scrolled; always hidden on mobile */}
             <span
               className={[
                 "text-sm text-taupe/90 transition-opacity duration-150",
@@ -106,7 +105,22 @@ export default function Header() {
             );
           })}
 
-          {/* Primary CTA (always visible) */}
+          {/* My Bookings (matches other link styles) */}
+          {session ? (
+            <Link
+              href="/account/bookings"
+              className={[
+                "text-sm transition-colors",
+                myBookingsActive
+                  ? "text-burgundy"
+                  : "text-taupe hover:text-burgundy",
+              ].join(" ")}
+            >
+              My Bookings
+            </Link>
+          ) : null}
+
+          {/* Primary CTA */}
           <Link href="/rooms">
             <Button variant="brand" className="rounded-xl">
               Book
@@ -118,7 +132,6 @@ export default function Header() {
             <span className="text-sm text-taupe">…</span>
           ) : session ? (
             <div className="flex items-center gap-3">
-              {/* Use <img> to avoid remote image domain config */}
               {session.user?.image ? (
                 <img
                   src={session.user.image}
@@ -128,6 +141,9 @@ export default function Header() {
                   className="rounded-full border border-black/10"
                 />
               ) : null}
+              <span className="text-sm text-burgundy max-w-[160px] truncate">
+                {session.user?.name ?? session.user?.email ?? "Signed in"}
+              </span>
               <Button
                 onClick={() => signOut()}
                 className="rounded-xl bg-neutral-900 text-white hover:bg-neutral-800"
@@ -175,6 +191,21 @@ export default function Header() {
                 </Link>
               );
             })}
+
+            {/* My Bookings in mobile menu (when signed in) */}
+            {session ? (
+              <Link
+                href="/account/bookings"
+                className={[
+                  "rounded-lg px-3 py-2 text-sm transition",
+                  myBookingsActive
+                    ? "bg-[color-mix(in_oklab,_var(--color-champagne)_25%,_transparent)] text-burgundy"
+                    : "text-taupe hover:bg-[color-mix(in_oklab,_var(--color-champagne)_20%,_transparent)] hover:text-burgundy",
+                ].join(" ")}
+              >
+                My Bookings
+              </Link>
+            ) : null}
 
             {/* Book CTA */}
             <Link href="/rooms" className="px-3 py-2">
