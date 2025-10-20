@@ -32,13 +32,18 @@ function availabilityWhere(checkIn: Date, checkOut: Date, guests: number) {
 
 /* ------------------------------ page ------------------------------- */
 
+// Query params type
 type SearchParams = { checkIn?: string; checkOut?: string; guests?: string };
 
 export default async function BookPage({
+  // Next.js 15 passes `searchParams` as a Promise
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
+  // Resolve the promise and fall back to an empty object
+  const qp = (await searchParams) ?? {};
+
   // Defaults: 2 nights starting a week from today
   const today = new Date();
   const defIn = new Date(
@@ -52,9 +57,9 @@ export default async function BookPage({
     today.getDate() + 9
   );
 
-  const checkIn = parseDate(searchParams.checkIn) ?? defIn;
-  const checkOut = parseDate(searchParams.checkOut) ?? defOut;
-  const guests = Math.max(1, Number(searchParams.guests ?? 2) || 1);
+  const checkIn = parseDate(qp.checkIn) ?? defIn;
+  const checkOut = parseDate(qp.checkOut) ?? defOut;
+  const guests = Math.max(1, Number(qp.guests ?? 2) || 1);
   const validRange = !!checkIn && !!checkOut && checkOut > checkIn;
   const stayNights = nightsBetween(checkIn, checkOut);
 
