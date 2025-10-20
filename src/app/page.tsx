@@ -1,37 +1,77 @@
-import { prisma } from "@/lib/db";
-import { RoomCard } from "@/components/rooms/room-card";
+// src/app/page.tsx
 
-export const metadata = { title: "Rooms — Tolaris Crown" };
+import Hero from "./(home)/_components/Hero";
+import Link from "next/link";
+import Image from "next/image";
+import Footer from "@/components/Footer";
 
-export default async function RoomsPage() {
-  const rooms = await prisma.room.findMany({ orderBy: { price: "asc" } });
+export default function HomePage() {
+  const features = [
+    {
+      title: "Royal Rooftop",
+      desc: "Sun-kissed breakfasts above Gran Vía.",
+      img: "/images/rooftop/rooftop-day.png",
+      href: "/rooftop",
+    },
+    {
+      title: "Fine Dining",
+      desc: "Seasonal Spanish cuisine & curated wines.",
+      img: "/images/restaurant/restaurant-interior.png",
+      href: "/dining",
+    },
+    {
+      title: "Spa & Fitness",
+      desc: "Indoor spa pool, relaxation lounge & gym.",
+      img: "/images/spa/spa-pool.png",
+      href: "/spa",
+    },
+  ];
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <header className="mb-6">
-        <h1 className="text-3xl font-serif text-burgundy">Our Rooms</h1>
-        <p className="mt-1 text-taupe">
-          Executive, Junior, and Royal Suites — each with warm elegance and a
-          golden glow.
-        </p>
-      </header>
+    <>
+      <Hero />
 
-      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {rooms.map((r) => (
-          <RoomCard
-            key={r.id}
-            room={{
-              id: r.id,
-              name: r.name,
-              slug: r.slug,
-              price: r.price,
-              capacity: r.capacity,
-              image: r.coverImage,
-              blurb: r.blurb ?? undefined,
-            }}
-          />
-        ))}
+      {/* Highlights Section */}
+      <section className="bg-ivory">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-8 md:grid-cols-3">
+            {features.map((c, i) => (
+              <Link
+                key={i}
+                href={c.href}
+                className="group block overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="relative h-48">
+                  <Image
+                    src={c.img}
+                    alt={c.title}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-5">
+                  <h3 className="font-serif text-xl text-burgundy">
+                    {c.title}
+                  </h3>
+                  <p className="mt-1 text-taupe">{c.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link
+              href="/rooms"
+              className="inline-flex items-center rounded-xl bg-burgundy px-5 py-3 text-ivory hover:bg-burgundy/90 transition"
+            >
+              Explore Suites
+            </Link>
+          </div>
+        </div>
       </section>
-    </main>
+
+      {/* Footer */}
+      <Footer />
+    </>
   );
 }
