@@ -3,11 +3,53 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Footer from "@/components/Footer";
 
 export default function AboutPage() {
   const [hovered, setHovered] = useState(false);
+
+  // --- Immersive strip state (typed & at top level) ---
+  const images = [
+    "/images/lobby/reception-1.png",
+    "/images/lobby/luxury-hotel-lobby-chandelier.png",
+    "/images/rooftop/rooftop-night.png",
+    "/images/restaurant/restaurant-interior.png",
+    "/images/spa/spa-pool.png",
+  ];
+
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      setCanLeft(scrollLeft > 0);
+      setCanRight(scrollLeft + clientWidth < scrollWidth - 1);
+    };
+
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  const scrollByAmount = (delta: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    // Scroll roughly one card at a time
+    const card = el.querySelector<HTMLElement>("[data-card]");
+    const step = card ? card.offsetWidth + 24 /* mx gap */ : 400;
+    el.scrollBy({ left: delta * step, behavior: "smooth" });
+  };
 
   return (
     <>
@@ -50,154 +92,100 @@ export default function AboutPage() {
 
         {/* IMMERSIVE IMAGE STRIP (polished w/ controls) */}
         <section className="relative isolate">
-          {(() => {
-            // Local state/logic just for this section
-            // (AboutPage is already a client component, so hooks are fine here.)
-            const images = [
-              "/images/lobby/reception-1.png",
-              "/images/lobby/luxury-hotel-lobby-chandelier.png",
-              "/images/rooftop/rooftop-night.png",
-              "/images/restaurant/restaurant-interior.png",
-              "/images/spa/spa-pool.png",
-            ];
-
-            // Lazy-init hooks to avoid redeclarations in JSX
-            // (put these at the top of your component if you prefer)
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const { useEffect, useRef, useState } = require("react");
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const scrollerRef = useRef<HTMLDivElement>(null);
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const [canLeft, setCanLeft] = useState(false);
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const [canRight, setCanRight] = useState(true);
-
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            useEffect(() => {
-              const el = scrollerRef.current;
-              if (!el) return;
-
-              const update = () => {
-                const { scrollLeft, scrollWidth, clientWidth } = el;
-                setCanLeft(scrollLeft > 0);
-                setCanRight(scrollLeft + clientWidth < scrollWidth - 1);
-              };
-
-              update();
-              el.addEventListener("scroll", update, { passive: true });
-              window.addEventListener("resize", update);
-              return () => {
-                el.removeEventListener("scroll", update as any);
-                window.removeEventListener("resize", update);
-              };
-            }, []);
-
-            const scrollByAmount = (delta: number) => {
-              const el = scrollerRef.current;
-              if (!el) return;
-              // Try to scroll roughly one card at a time
-              const card = el.querySelector<HTMLElement>("[data-card]");
-              const step = card ? card.offsetWidth + 24 /* mx */ : 400;
-              el.scrollBy({ left: delta * step, behavior: "smooth" });
-            };
-
-            return (
-              <div className="relative">
-                {/* Horizontal cards */}
-                <div
-                  ref={scrollerRef}
-                  className="
-            flex gap-6 overflow-x-auto pb-2
-            snap-x snap-mandatory scroll-smooth
-          "
-                  aria-label="Hotel highlights gallery"
-                >
-                  {images.map((src, i) => (
-                    <div
-                      key={i}
-                      data-card
-                      className="
-                relative h-[60vh] w-[85vw] max-w-[900px]
-                shrink-0 snap-start overflow-hidden rounded-3xl
+          <div className="relative">
+            {/* Horizontal cards */}
+            <div
+              ref={scrollerRef}
+              className="
+                flex gap-6 overflow-x-auto pb-2
+                snap-x snap-mandatory scroll-smooth
               "
-                    >
-                      <Image
-                        src={src}
-                        alt={`Hotel photo ${i + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 85vw, 900px"
-                        className="object-cover object-center transition-transform duration-700 hover:scale-105"
-                        priority={i === 0}
-                      />
-                      {/* Subtle edge vignette for readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
-                    </div>
-                  ))}
+              aria-label="Hotel highlights gallery"
+            >
+              {images.map((src, i) => (
+                <div
+                  key={i}
+                  data-card
+                  className="
+                    relative h-[60vh] w-[85vw] max-w-[900px]
+                    shrink-0 snap-start overflow-hidden rounded-3xl mx-3
+                  "
+                >
+                  <Image
+                    src={src}
+                    alt={`Hotel photo ${i + 1}`}
+                    fill
+                    sizes="(max-width: 768px) 85vw, 900px"
+                    className="object-cover object-center transition-transform duration-700 hover:scale-105"
+                    priority={i === 0}
+                  />
+                  {/* Subtle edge vignette for readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
                 </div>
+              ))}
+            </div>
 
-                {/* Left / Right arrow controls */}
-                {/* Left */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
-                  <button
-                    type="button"
-                    onClick={() => scrollByAmount(-1)}
-                    disabled={!canLeft}
-                    className={`
-              pointer-events-auto hidden md:inline-flex items-center justify-center
-              rounded-full p-2 shadow
-              transition opacity-90 hover:opacity-100
-              ${
-                canLeft
-                  ? "bg-black/70 text-white"
-                  : "bg-black/20 text-white/50 cursor-not-allowed"
-              }
-            `}
-                    aria-label="Scroll gallery left"
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M15 6l-6 6 6 6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
+            {/* Left / Right arrow controls */}
+            {/* Left */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+              <button
+                type="button"
+                onClick={() => scrollByAmount(-1)}
+                disabled={!canLeft}
+                className={`
+                  pointer-events-auto hidden md:inline-flex items-center justify-center
+                  rounded-full p-2 shadow
+                  transition opacity-90 hover:opacity-100
+                  ${
+                    canLeft
+                      ? "bg-black/70 text-white"
+                      : "bg-black/20 text-white/50 cursor-not-allowed"
+                  }
+                `}
+                aria-label="Scroll gallery left"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M15 6l-6 6 6 6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
 
-                {/* Right */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                  <button
-                    type="button"
-                    onClick={() => scrollByAmount(1)}
-                    disabled={!canRight}
-                    className={`
-              pointer-events-auto hidden md:inline-flex items-center justify-center
-              rounded-full p-2 shadow
-              transition opacity-90 hover:opacity-100
-              ${
-                canRight
-                  ? "bg-black/70 text-white"
-                  : "bg-black/20 text-white/50 cursor-not-allowed"
-              }
-            `}
-                    aria-label="Scroll gallery right"
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M9 6l6 6-6 6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
+            {/* Right */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+              <button
+                type="button"
+                onClick={() => scrollByAmount(1)}
+                disabled={!canRight}
+                className={`
+                  pointer-events-auto hidden md:inline-flex items-center justify-center
+                  rounded-full p-2 shadow
+                  transition opacity-90 hover:opacity-100
+                  ${
+                    canRight
+                      ? "bg-black/70 text-white"
+                      : "bg-black/20 text-white/50 cursor-not-allowed"
+                  }
+                `}
+                aria-label="Scroll gallery right"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M9 6l6 6-6 6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* OUR STORY (text + image grid) */}

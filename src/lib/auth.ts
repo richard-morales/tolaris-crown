@@ -9,12 +9,16 @@ import { prisma } from "@/lib/db";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
+
+  // We use JWTs so we can attach the user id easily
   session: { strategy: "jwt" },
+
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -35,6 +39,7 @@ export const authOptions: NextAuthOptions = {
         );
         if (!ok) return null;
 
+        // Return the minimal user object NextAuth needs
         return {
           id: user.id,
           name: user.name ?? null,
@@ -44,16 +49,24 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+
   pages: { signIn: "/auth/signin" },
   secret: process.env.NEXTAUTH_SECRET,
+
   callbacks: {
+    // Put the user id onto the JWT the first time (and keep it on refresh)
     async jwt({ token, user }) {
-      if (user?.id) token.uid = (user as any).id;
+      if (user?.id) {
+        // standardize on token.id (matches your next-auth.d.ts augmentation)
+        token.id = (user as any).id as string;
+      }
       return token;
     },
+
+    // Expose that id on the session for server/client use
     async session({ session, token }) {
-      if (session.user && token?.uid) {
-        (session.user as any).id = token.uid as string;
+      if (session.user && token?.id) {
+        (session.user as any).id = token.id as string;
       }
       return session;
     },

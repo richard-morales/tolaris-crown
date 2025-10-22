@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Gallery from "@/components/rooms/gallery";
 import { prisma } from "@/lib/db";
 import BookForm from "@/components/rooms/book-form";
-import Footer from "@/components/Footer"; // ✅ add footer
+import Footer from "@/components/Footer";
 
 export const runtime = "nodejs";
 
@@ -18,13 +18,19 @@ export async function generateStaticParams() {
 
 export const dynamicParams = false;
 
+type RouteParams = { slug: string };
+
 export default async function RoomDetails({
   params,
 }: {
-  params: { slug: string };
+  params?: Promise<RouteParams>;
 }) {
+  // Next.js 15: params is a Promise
+  const { slug } = (await params) ?? {};
+  if (!slug) return notFound();
+
   const room = await prisma.room.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: { features: true, images: { orderBy: { sort: "asc" } } },
   });
   if (!room) return notFound();
@@ -111,7 +117,9 @@ export default async function RoomDetails({
           </>
         ) : null}
       </main>
-      <Footer /> {/* ✅ footer */}
+
+      {/* Footer */}
+      <Footer />
     </>
   );
 }
