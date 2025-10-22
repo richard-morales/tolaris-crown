@@ -1,9 +1,9 @@
 // src/app/rooms/[slug]/page.tsx
 // Room details from Prisma: cover, overview, features, gallery + lightbox.
+
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import Gallery from "@/components/rooms/gallery";
 import { prisma } from "@/lib/db";
 import BookForm from "@/components/rooms/book-form";
@@ -23,10 +23,10 @@ type RouteParams = { slug: string };
 export default async function RoomDetails({
   params,
 }: {
-  params?: Promise<RouteParams>;
+  // Next.js 15 App Router: params is a Promise
+  params: Promise<RouteParams>;
 }) {
-  // Next.js 15: params is a Promise
-  const { slug } = (await params) ?? {};
+  const { slug } = await params;
   if (!slug) return notFound();
 
   const room = await prisma.room.findUnique({
