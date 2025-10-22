@@ -9,11 +9,15 @@ import { prisma } from "@/lib/db";
 import BookForm from "@/components/rooms/book-form";
 import Footer from "@/components/Footer";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const revalidate = 0; // disable ISR (optional but safest now)
 
-export async function generateStaticParams() {
+{
+  /* export async function generateStaticParams() {
   const rooms = await prisma.room.findMany({ select: { slug: true } });
   return rooms.map((r) => ({ slug: r.slug }));
+} */
 }
 
 export const dynamicParams = false;

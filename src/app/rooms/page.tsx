@@ -6,7 +6,10 @@ import Footer from "@/components/Footer";
 
 export const metadata = { title: "Rooms — Tolaris Crown" };
 // Ensure Node runtime (Prisma does not run on the Edge runtime)
+
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const revalidate = 0; // optional
 
 export default async function RoomsPage() {
   const rooms = await prisma.room.findMany({
