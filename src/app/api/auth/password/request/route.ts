@@ -12,28 +12,32 @@ const sha256 = (s: string) =>
 export async function POST(req: Request) {
   const { email } = await req.json().catch(() => ({}));
   const e = (email ?? "").toString().trim().toLowerCase();
-  if (!e) return NextResponse.json({ ok: true }); // do not reveal user existence
+
+  // Privacy: never reveal whether the user exists
+  if (!e) return NextResponse.json({ ok: true });
 
   const user = await prisma.user.findUnique({ where: { email: e } });
-  // Still return ok even if no user (privacy)
   if (!user) return NextResponse.json({ ok: true });
 
-  // Invalidate previous requests for this email
+  // Invalidate prior tokens for this identifier
   await prisma.verificationToken.deleteMany({ where: { identifier: e } });
 
-  // Create new token
+  // Create new token (hex -> URL-safe even without encoding, but we encode anyway)
   const raw = crypto.randomBytes(32).toString("hex");
   const hashed = sha256(raw);
-  const expires = new Date(Date.now() + 30 * 60 * 1000);
+  const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
   await prisma.verificationToken.create({
     data: { identifier: e, token: hashed, expires },
   });
 
-  const base = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL!;
-  const url = `${base}/auth/reset-password?token=${raw}&email=${encodeURIComponent(
-    e
-  )}`;
+  const base =
+    process.env.APP_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
+  const url = `${base}/auth/reset-password?token=${encodeURIComponent(
+    raw
+  )}&email=${encodeURIComponent(e)}`;
 
   await sendMail({
     to: e,

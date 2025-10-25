@@ -1,4 +1,4 @@
-// src/app/api/auth/password/reset/route.ts
+// src/app/api/auth/password/route.ts
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
@@ -11,7 +11,6 @@ const sha256 = (s: string) =>
 
 export async function POST(req: Request) {
   const { email, token, password } = await req.json().catch(() => ({}));
-
   const e = (email ?? "").toString().trim().toLowerCase();
   const p = (password ?? "").toString();
 
@@ -23,10 +22,23 @@ export async function POST(req: Request) {
   }
 
   const hashed = sha256(token);
-  const vt = await prisma.verificationToken.findUnique({
-    where: { token: hashed },
+
+  // Find the token for this email (safer than token-only)
+  const vt = await prisma.verificationToken.findFirst({
+    where: { identifier: e, token: hashed },
   });
-  if (!vt || vt.identifier !== e || vt.expires < new Date()) {
+
+  if (!vt || vt.expires < new Date()) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid or expired token" },
+      { status: 400 }
+    );
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: e } });
+  if (!user) {
+    // Clean up token even if user is gone
+    await prisma.verificationToken.deleteMany({ where: { identifier: e } });
     return NextResponse.json(
       { ok: false, error: "Invalid or expired token" },
       { status: 400 }
@@ -34,8 +46,13 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await bcrypt.hash(p, 10);
-  await prisma.user.update({ where: { email: e }, data: { passwordHash } });
-  await prisma.verificationToken.delete({ where: { token: hashed } });
+
+  // Update password, invalidate sessions, and delete token(s) atomically
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+    prisma.session.deleteMany({ where: { userId: user.id } }),
+    prisma.verificationToken.deleteMany({ where: { identifier: e } }),
+  ]);
 
   return NextResponse.json({ ok: true });
 }
