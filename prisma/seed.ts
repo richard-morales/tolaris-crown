@@ -1,6 +1,8 @@
+// prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
 const db = new PrismaClient();
 
+// Helper: upsert a room and fully replace its children in a transaction
 async function upsertRoom(d: {
   slug: string;
   name: string;
@@ -12,36 +14,49 @@ async function upsertRoom(d: {
   features?: string[];
   gallery?: string[];
 }) {
-  await db.room.upsert({
-    where: { slug: d.slug },
-    create: {
-      slug: d.slug,
-      name: d.name,
-      price: d.price,
-      capacity: d.capacity,
-      coverImage: d.cover,
-      blurb: d.blurb,
-      description: d.description,
-      features: { create: (d.features ?? []).map((label) => ({ label })) },
-      images: { create: (d.gallery ?? []).map((url, i) => ({ url, sort: i })) },
-    },
-    update: {
-      name: d.name,
-      price: d.price,
-      capacity: d.capacity,
-      coverImage: d.cover,
-      blurb: d.blurb,
-      description: d.description,
-      features: {
-        deleteMany: {},
-        create: (d.features ?? []).map((label) => ({ label })),
+  // We use a transaction so the room + its children are always consistent
+  await db.$transaction(async (tx) => {
+    // Upsert the room itself
+    const room = await tx.room.upsert({
+      where: { slug: d.slug },
+      create: {
+        slug: d.slug,
+        name: d.name,
+        price: d.price,
+        capacity: d.capacity,
+        coverImage: d.cover,
+        blurb: d.blurb,
+        description: d.description,
       },
-      images: {
-        deleteMany: {},
-        create: (d.gallery ?? []).map((url, i) => ({ url, sort: i })),
+      update: {
+        name: d.name,
+        price: d.price,
+        capacity: d.capacity,
+        coverImage: d.cover,
+        blurb: d.blurb,
+        description: d.description,
       },
-    },
+      select: { id: true, slug: true },
+    });
+
+    // Replace features
+    await tx.feature.deleteMany({ where: { roomId: room.id } });
+    if (d.features?.length) {
+      await tx.feature.createMany({
+        data: d.features.map((label) => ({ label, roomId: room.id })),
+      });
+    }
+
+    // Replace images (with deterministic sort order)
+    await tx.roomImage.deleteMany({ where: { roomId: room.id } });
+    if (d.gallery?.length) {
+      await tx.roomImage.createMany({
+        data: d.gallery.map((url, i) => ({ url, sort: i, roomId: room.id })),
+      });
+    }
   });
+
+  console.log(`• Upserted room: ${d.slug}`);
 }
 
 async function main() {
@@ -121,4 +136,13 @@ async function main() {
   });
 }
 
-main().finally(() => db.$disconnect());
+main()
+  .then(async () => {
+    console.log("✅ Seed complete");
+    await db.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error("❌ Seed failed:", e);
+    await db.$disconnect();
+    process.exit(1);
+  });

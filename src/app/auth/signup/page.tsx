@@ -9,38 +9,65 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setEmailExists(false);
 
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data?.error ?? "Sign-up failed.");
-      setLoading(false);
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
       return;
     }
 
-    // Auto sign in after successful signup
-    const login = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-      callbackUrl: "/",
-    });
+    setLoading(true);
 
-    setLoading(false);
-    if (login?.ok) window.location.href = "/";
-    else setError("Signed up, but auto sign-in failed. Try signing in.");
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 409 && data?.code === "EMAIL_EXISTS") {
+          setEmailExists(true);
+          return;
+        }
+        setError(data?.error ?? "Sign-up failed.");
+        return;
+      }
+
+      // Auto sign in after successful signup (your previous behavior)
+      const login = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+        callbackUrl: "/",
+      });
+
+      if (login?.ok) {
+        window.location.href = "/";
+      } else {
+        setError("Signed up, but auto sign-in failed. Try signing in.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -50,12 +77,13 @@ export default function SignUpPage() {
       <form
         onSubmit={onSubmit}
         className="space-y-3 rounded-2xl border border-black/10 bg-white p-4"
+        noValidate
       >
         <label className="block text-sm">
           <span className="text-taupe">Name</span>
           <input
             type="text"
-            className="mt-1 w-full h-11 rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
+            className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -65,26 +93,63 @@ export default function SignUpPage() {
           <span className="text-taupe">Email</span>
           <input
             type="email"
-            className="mt-1 w-full h-11 rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
+            className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </label>
 
-        <label className="block text-sm">
-          <span className="text-taupe">Password</span>
-          <input
-            type="password"
-            className="mt-1 w-full h-11 rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={8}
-            required
-          />
-        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="text-taupe">Password</span>
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type={show ? "text" : "password"}
+                className="h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShow((s) => !s)}
+                className="rounded-md border px-2 py-1 text-xs"
+              >
+                {show ? "Hide" : "Show"}
+              </button>
+            </div>
+          </label>
+
+          <label className="block text-sm">
+            <span className="text-taupe">Confirm password</span>
+            <input
+              type={show ? "text" : "password"}
+              className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              minLength={8}
+              required
+            />
+          </label>
+        </div>
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
+
+        {emailExists && (
+          <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
+            This email already has an account.
+            <div className="mt-2 flex gap-3">
+              <Link href="/auth/forgot-password" className="underline">
+                Recover password
+              </Link>
+              <Link href="/auth/signin" className="underline">
+                Sign in
+              </Link>
+            </div>
+          </div>
+        )}
 
         <Button type="submit" className="w-full rounded-xl" disabled={loading}>
           {loading ? "Creating…" : "Create account"}

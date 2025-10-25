@@ -1,15 +1,79 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
+/**
+ * Hero
+ * ------------------------------------------------------------------
+ * - Subscribes an email to /api/subscribe
+ * - Client-side validation + robust error handling
+ * - Accessible live region for status messages
+ * - Prevents double submissions and gives visual feedback
+ * ------------------------------------------------------------------
+ */
 export default function Hero() {
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<null | {
+    kind: "success" | "error";
+    msg: string;
+  }>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
+  // Small RFC-like check; backend also validates
+  const isValidEmail = (e: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+
+  async function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setEmail("");
-    alert("Thanks! We’ll be in touch soon.");
+    setStatus(null);
+
+    const value = email.trim().toLowerCase();
+    if (!isValidEmail(value)) {
+      setStatus({ kind: "error", msg: "Please enter a valid email address." });
+      inputRef.current?.focus();
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        deduped?: boolean;
+        error?: string;
+      };
+
+      if (!res.ok || !data?.ok) {
+        // Prefer server message if present
+        const reason = data?.error || "Something went wrong. Please try again.";
+        setStatus({ kind: "error", msg: reason });
+        return;
+      }
+
+      // Success path (fresh or deduped are both wins)
+      setEmail("");
+      setStatus({
+        kind: "success",
+        msg: data.deduped
+          ? "You're already on the list—watch your inbox for offers & news."
+          : "You're subscribed! Watch your inbox for offers & news.",
+      });
+    } catch {
+      setStatus({
+        kind: "error",
+        msg: "Network error. Please check your connection and try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -49,22 +113,47 @@ export default function Hero() {
           <form
             onSubmit={handleSubscribe}
             className="mt-6 flex w-full max-w-lg items-center gap-3 rounded-2xl bg-white/90 p-2 backdrop-blur"
+            noValidate
           >
             <input
+              ref={inputRef}
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Your email for offers & news"
               className="w-full rounded-xl border border-black/10 bg-white px-3 py-3 text-sm text-burgundy placeholder:text-taupe/70 focus:outline-none"
+              aria-invalid={status?.kind === "error" ? true : false}
+              aria-describedby="subscribe-status"
+              disabled={submitting}
             />
             <button
               type="submit"
-              className="whitespace-nowrap rounded-xl bg-burgundy px-4 py-3 text-sm font-medium text-ivory hover:bg-burgundy/90"
+              disabled={submitting}
+              className="whitespace-nowrap rounded-xl bg-burgundy px-4 py-3 text-sm font-medium text-ivory hover:bg-burgundy/90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Keep me posted
+              {submitting ? "Subscribing…" : "Keep me posted"}
             </button>
           </form>
+
+          {/* Accessible status message (live region) */}
+          <div
+            id="subscribe-status"
+            className="mt-3 text-sm"
+            role="status"
+            aria-live="polite"
+          >
+            {status?.kind === "success" && (
+              <span className="rounded-md bg-emerald-600/20 px-2 py-1 text-emerald-100">
+                {status.msg}
+              </span>
+            )}
+            {status?.kind === "error" && (
+              <span className="rounded-md bg-red-600/30 px-2 py-1 text-red-100">
+                {status.msg}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
