@@ -2,11 +2,16 @@
 /**
  * Next.js App Router layout
  * ----------------------------------------------------------------------
- * - Exports full Metadata (SEO + social cards + app icons + manifest).
- * - Uses APP_BASE_URL (or NEXTAUTH_URL) to produce absolute URLs in OG/Twitter.
- * - Keeps your existing providers/components unchanged.
- * - Add /icon.png (512x512), /apple-icon.png (180x180) under /app.
- * - Add /opengraph-image.tsx, /twitter-image.tsx, /manifest.ts as provided.
+ * PRODUCTION NOTES
+ * - We point Open Graph & Twitter images to a STATIC file under /public
+ *   (public/images/hero/rooftop-hero-og.jpg). Static assets are served by
+ *   the CDN and are far more reliable for Meta/WhatsApp cards than dynamic
+ *   /opengraph-image routes.
+ * - `metadataBase` + absolute image URLs ensure correct canonical sharing.
+ * - If you later add a Facebook App, you can set fb:app_id in `other`.
+ * - Keep /opengraph-image.tsx and /twitter-image.tsx if you want dynamic
+ *   images for other platforms; they won’t affect Meta when we provide
+ *   an explicit static image here.
  * ----------------------------------------------------------------------
  */
 
@@ -17,7 +22,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import SessionProviderRoot from "@/components/providers/session-provider";
 import Header from "@/components/layout/header";
 
-/** --- Fonts (unchanged) --- */
+/** Fonts */
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -29,29 +34,39 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-/** --- Site URL for absolute metadata links (OG/Twitter) --- */
+/** Site URL for absolute metadata links (OG/Twitter) */
 const siteUrl =
   process.env.APP_BASE_URL ||
   process.env.NEXTAUTH_URL ||
-  "http://localhost:3000";
+  "https://tolaris-crown.vercel.app";
 
-/** --- Metadata: title/description, icons, OG/Twitter, manifest --- */
+/** Centralized OG image (STATIC file under /public) */
+const OG_IMAGE_PATH = "/images/hero/rooftop-hero-og.jpg";
+const OG_IMAGE_URL = `${siteUrl}${OG_IMAGE_PATH}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+
   title: {
     default: "Tolaris Crown — Madrid",
     template: "%s · Tolaris Crown",
   },
+
   description:
     "Crowning stays in the heart of Madrid — suites, dining, skyline views, and warm Spanish service.",
+
   applicationName: "Tolaris Crown",
-  themeColor: "#6E0D25", // burgundy
+
+  // Theme color must live in viewport (kept below); leaving here can warn.
+  // themeColor: "#6E0D25",
+
   icons: {
-    icon: "/icon.png", // /app/icon.png (512x512)
-    apple: "/apple-icon.png", // /app/apple-icon.png (180x180)
+    icon: "/icon.png", // app/icon.png (512x512)
+    apple: "/apple-icon.png", // app/apple-icon.png (180x180)
   },
-  // Next will serve this from /app/manifest.ts
+
   manifest: "/manifest.webmanifest",
+
   openGraph: {
     type: "website",
     url: siteUrl,
@@ -59,27 +74,34 @@ export const metadata: Metadata = {
     description:
       "Crowning stays in the heart of Madrid — suites, dining, and skyline views.",
     siteName: "Tolaris Crown",
+    locale: "en_US",
     images: [
       {
-        url: "/opengraph-image", // /app/opengraph-image.tsx
+        /** Static JPG served from the CDN — most reliable for Meta/WhatsApp */
+        url: OG_IMAGE_URL,
         width: 1200,
         height: 630,
-        alt: "Tolaris Crown — Madrid luxury suites",
+        alt: "Tolaris Crown rooftop view over Madrid",
+        type: "image/jpeg",
       },
     ],
-    locale: "en_US",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Tolaris Crown — Madrid",
     description:
       "Crowning stays in the heart of Madrid — suites, dining, and skyline views.",
-    images: ["/twitter-image"], // /app/twitter-image.tsx
-    // creator: "@tolaris_crown", // Optional: set when you have a handle
+    images: [OG_IMAGE_URL], // explicit absolute URL
   },
+
+  // OPTIONAL: uncomment when you have a Facebook App ID
+  // other: {
+  //   "fb:app_id": "YOUR_FB_APP_ID_HERE",
+  // },
 };
 
-/** --- Viewport (nice-to-have for theming on mobile) --- */
+/** Viewport theme color lives here */
 export const viewport: Viewport = {
   themeColor: "#6E0D25",
 };
