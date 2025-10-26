@@ -1,6 +1,7 @@
 // src/app/opengraph-image.tsx
-// Generates a rich OG image at /opengraph-image (1200x630)
-// You can later switch the background to a brand photo.
+// Production note:
+// - This dynamic OG image path is referenced by layout.tsx.
+// - Keep font loading local for determinism if you later add custom fonts.
 
 import { ImageResponse } from "next/og";
 
@@ -12,29 +13,38 @@ export default async function OGImage() {
     (
       <div
         style={{
-          width: "100%",
           height: "100%",
+          width: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
+          justifyContent: "center",
+          alignItems: "flex-start",
           background:
-            "linear-gradient(135deg, #1b1b1b 0%, #3a0d17 45%, #6E0D25 100%)",
-          color: "white",
-          padding: 64,
-          fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI",
+            "linear-gradient(135deg, #2B0D0F 0%, #5A1F26 35%, #B48A76 100%)",
+          padding: "64px",
         }}
       >
-        <div style={{ fontSize: 54, lineHeight: 1.1 }}>
-          <span style={{ opacity: 0.9 }}>Tolaris Crown</span>
-          <div style={{ fontSize: 28, opacity: 0.85, marginTop: 12 }}>
-            Crowning stays in the heart of Madrid
-          </div>
+        <div
+          style={{
+            fontSize: 72,
+            color: "white",
+            fontWeight: 700,
+            lineHeight: 1.1,
+          }}
+        >
+          Tolaris Crown
         </div>
-        <div style={{ fontSize: 24, opacity: 0.9 }}>
-          Executive · Junior · Royal Suites
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 28,
+            color: "rgba(255,255,255,0.85)",
+          }}
+        >
+          Crowning Stays in the Heart of Madrid
         </div>
       </div>
     ),
-    { ...size }
+    size
   );
 }

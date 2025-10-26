@@ -1,4 +1,7 @@
 // src/app/manifest.ts
+// Production note:
+// - Keep icons in /public. If you replace images, preserve sizes to avoid iOS/Android quirks.
+
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -6,24 +9,14 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Tolaris Crown",
     short_name: "Tolaris",
     description:
-      "Crowning stays in the heart of Madrid — suites, dining, and skyline views.",
-    start_url: "/",
+      "Crowning stays in the heart of Madrid. Executive, Junior, and Royal Suites—crafted for unhurried stays.",
+    theme_color: "#F6F1E7",
+    background_color: "#F6F1E7",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#6E0D25", // burgundy
+    start_url: "/",
     icons: [
-      {
-        src: "/icon.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/apple-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-        purpose: "any",
-      },
+      { src: "/icon.png", sizes: "512x512", type: "image/png" },
+      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
     ],
   };
 }
