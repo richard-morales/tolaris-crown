@@ -1,9 +1,16 @@
+// src/app/auth/signup/page.tsx
+// Notes (prod):
+// - Preserves your behavior; adds Eye/EyeOff, better messages, and trims email.
+// - Handles both { code: "EMAIL_EXISTS" } and plain 409 responses.
+// - Keeps "noValidate" (server owns rules) but enforces minLength client side.
+
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -18,6 +25,8 @@ export default function SignUpPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
     setError(null);
     setEmailExists(false);
 
@@ -31,18 +40,22 @@ export default function SignUpPage() {
     }
 
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({} as any));
 
       if (!res.ok) {
-        if (res.status === 409 && data?.code === "EMAIL_EXISTS") {
+        // Support both your structured error and a plain 409
+        if (res.status === 409 && (data?.code === "EMAIL_EXISTS" || true)) {
           setEmailExists(true);
           return;
         }
@@ -50,19 +63,16 @@ export default function SignUpPage() {
         return;
       }
 
-      // Auto sign in after successful signup (your previous behavior)
+      // Auto sign in after successful signup (kept from your version)
       const login = await signIn("credentials", {
         redirect: false,
-        email,
+        email: email.trim().toLowerCase(),
         password,
         callbackUrl: "/",
       });
 
-      if (login?.ok) {
-        window.location.href = "/";
-      } else {
-        setError("Signed up, but auto sign-in failed. Try signing in.");
-      }
+      if (login?.ok) window.location.href = "/";
+      else setError("Signed up, but auto sign-in failed. Try signing in.");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -83,6 +93,7 @@ export default function SignUpPage() {
           <span className="text-taupe">Name</span>
           <input
             type="text"
+            autoComplete="name"
             className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -93,6 +104,8 @@ export default function SignUpPage() {
           <span className="text-taupe">Email</span>
           <input
             type="email"
+            inputMode="email"
+            autoComplete="email"
             className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -103,10 +116,11 @@ export default function SignUpPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="text-taupe">Password</span>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 relative">
               <input
                 type={show ? "text" : "password"}
-                className="h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
+                autoComplete="new-password"
+                className="h-11 w-full rounded-md border border-black/10 px-3 pr-10 outline-none focus:ring-[3px] focus:ring-black/15"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
@@ -115,9 +129,10 @@ export default function SignUpPage() {
               <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
-                className="rounded-md border px-2 py-1 text-xs"
+                aria-label={show ? "Hide password" : "Show password"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-taupe hover:text-burgundy"
               >
-                {show ? "Hide" : "Show"}
+                {show ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </label>
@@ -126,6 +141,7 @@ export default function SignUpPage() {
             <span className="text-taupe">Confirm password</span>
             <input
               type={show ? "text" : "password"}
+              autoComplete="new-password"
               className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
@@ -141,10 +157,13 @@ export default function SignUpPage() {
           <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
             This email already has an account.
             <div className="mt-2 flex gap-3">
-              <Link href="/auth/forgot-password" className="underline">
+              <Link
+                href="/auth/forgot-password"
+                className="text-burgundy underline"
+              >
                 Recover password
               </Link>
-              <Link href="/auth/signin" className="underline">
+              <Link href="/auth/signin" className="text-burgundy underline">
                 Sign in
               </Link>
             </div>

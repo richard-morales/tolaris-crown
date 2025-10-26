@@ -1,4 +1,9 @@
 // src/app/auth/signin/page.tsx
+// Notes (prod):
+// - Keeps your Credentials flow; adds better a11y + autocomplete hints.
+// - Eye/EyeOff stays; button is keyboard and screen-reader friendly.
+// - Avoids double submits and trims email to reduce login mismatch footguns.
+
 "use client";
 
 import { useState } from "react";
@@ -21,14 +26,18 @@ export default function SignInPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
     setErr(null);
     setLoading(true);
+
     const res = await signIn("credentials", {
       redirect: false,
-      email,
+      email: email.trim().toLowerCase(),
       password,
       callbackUrl,
     });
+
     setLoading(false);
     if (res?.error) setErr("Invalid email or password.");
     else if (res?.ok) window.location.href = callbackUrl;
@@ -37,6 +46,7 @@ export default function SignInPage() {
   return (
     <main className="mx-auto max-w-md px-4 py-10">
       <h1 className="mb-6 font-serif text-3xl text-burgundy">Sign in</h1>
+
       <form
         onSubmit={onSubmit}
         className="space-y-3 rounded-2xl border border-black/10 bg-white p-4"
@@ -46,6 +56,9 @@ export default function SignInPage() {
           <span className="text-taupe">Email</span>
           <input
             type="email"
+            inputMode="email"
+            autoComplete="email"
+            name="email"
             className="mt-1 h-11 w-full rounded-md border border-black/10 px-3 outline-none focus:ring-[3px] focus:ring-black/15"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -55,27 +68,31 @@ export default function SignInPage() {
 
         <label className="block text-sm">
           <span className="text-taupe">Password</span>
-          <div className="mt-1 flex items-center gap-2">
-            <div className="relative w-full">
-              <input
-                type={show ? "text" : "password"}
-                className="h-11 w-full rounded-md border border-black/10 px-3 pr-10 outline-none focus:ring-[3px] focus:ring-black/15"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                aria-label={show ? "Hide password" : "Show password"}
-                onClick={() => setShow((s) => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-taupe hover:text-burgundy"
-              >
-                {show ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
+          <div className="mt-1 relative">
+            <input
+              type={show ? "text" : "password"}
+              name="current-password"
+              autoComplete="current-password"
+              className="h-11 w-full rounded-md border border-black/10 px-3 pr-10 outline-none focus:ring-[3px] focus:ring-black/15"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              aria-label={show ? "Hide password" : "Show password"}
+              onClick={() => setShow((s) => !s)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-taupe hover:text-burgundy"
+            >
+              {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
+
           <div className="mt-2">
-            <Link href="/auth/forgot-password" className="text-sm underline">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-burgundy underline underline-offset-4"
+            >
               Forgot password?
             </Link>
           </div>

@@ -1,17 +1,14 @@
+// src/app/home/_components/Hero.tsx
+// Notes (prod):
+// - Tolerates either API style: (a) JSON { ok, deduped } or (b) plain HTTP 201/409.
+// - Accessible live region; prevents double-submits; trims/lowercases email.
+// - Keeps your visual design and copy.
+
 "use client";
 
 import Image from "next/image";
 import { useState, useRef } from "react";
 
-/**
- * Hero
- * ------------------------------------------------------------------
- * - Subscribes an email to /api/subscribe
- * - Client-side validation + robust error handling
- * - Accessible live region for status messages
- * - Prevents double submissions and gives visual feedback
- * ------------------------------------------------------------------
- */
 export default function Hero() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -21,12 +18,13 @@ export default function Hero() {
   }>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Small RFC-like check; backend also validates
   const isValidEmail = (e: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
   async function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
+
     setStatus(null);
 
     const value = email.trim().toLowerCase();
@@ -45,27 +43,40 @@ export default function Hero() {
         body: JSON.stringify({ email: value }),
       });
 
-      const data = (await res.json().catch(() => ({}))) as {
-        ok?: boolean;
-        deduped?: boolean;
-        error?: string;
-      };
+      // Try to read JSON if provided; otherwise default to empty object
+      const data = (await res.json().catch(() => ({}))) as Partial<{
+        ok: boolean;
+        deduped: boolean;
+        error: string;
+      }>;
 
-      if (!res.ok || !data?.ok) {
-        // Prefer server message if present
-        const reason = data?.error || "Something went wrong. Please try again.";
-        setStatus({ kind: "error", msg: reason });
+      // Accept either JSON ok/deduped or status codes 201/409
+      if (res.ok || data.ok) {
+        const dedup =
+          typeof data.deduped === "boolean"
+            ? data.deduped
+            : res.status === 200 || res.status === 204;
+        setEmail("");
+        setStatus({
+          kind: "success",
+          msg: dedup
+            ? "You’re already on the list—watch your inbox for offers & news."
+            : "You’re subscribed! Watch your inbox for offers & news.",
+        });
         return;
       }
 
-      // Success path (fresh or deduped are both wins)
-      setEmail("");
-      setStatus({
-        kind: "success",
-        msg: data.deduped
-          ? "You're already on the list—watch your inbox for offers & news."
-          : "You're subscribed! Watch your inbox for offers & news.",
-      });
+      if (res.status === 409) {
+        setEmail("");
+        setStatus({
+          kind: "success",
+          msg: "You’re already on the list—watch your inbox for offers & news.",
+        });
+        return;
+      }
+
+      const reason = data?.error || "Something went wrong. Please try again.";
+      setStatus({ kind: "error", msg: reason });
     } catch {
       setStatus({
         kind: "error",
@@ -87,7 +98,6 @@ export default function Hero() {
           priority
           className="object-cover"
         />
-        {/* soft vignette */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/25 to-black/45" />
       </div>
 
@@ -118,6 +128,7 @@ export default function Hero() {
             <input
               ref={inputRef}
               type="email"
+              inputMode="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -126,6 +137,7 @@ export default function Hero() {
               aria-invalid={status?.kind === "error" ? true : false}
               aria-describedby="subscribe-status"
               disabled={submitting}
+              autoComplete="email"
             />
             <button
               type="submit"
@@ -157,7 +169,6 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* (Optional) seam guard: a 1px bar to hide any hairline gap */}
       <div className="absolute inset-x-0 bottom-0 h-px bg-ivory" />
     </section>
   );
