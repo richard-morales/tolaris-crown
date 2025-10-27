@@ -41,7 +41,7 @@ const siteUrl =
   "https://tolaris-crown.vercel.app";
 
 /** Centralized OG image (STATIC file under /public) */
-const OG_IMAGE_PATH = "/images/hero/rooftop-hero-og.jpg";
+const OG_IMAGE_PATH = "/images/hero/rooftop-hero-og-v2.jpg";
 const OG_IMAGE_URL = `${siteUrl}${OG_IMAGE_PATH}`;
 
 export const metadata: Metadata = {
